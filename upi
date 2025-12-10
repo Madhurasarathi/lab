@@ -1,0 +1,93 @@
+#include "upi.h"
+
+/* Initialize database */
+UserDB init_db() {
+    UserDB db;
+    db.count = 0;
+    db.is_init = TRUE;
+    return db;
+}
+
+/* Register user */
+int register_user(UserDB *db, char *mobile, AccountType type, BusinessType biz) {
+    if (!db || !db->is_init || db->count >= MAX_USERS)
+        return FAIL;
+
+    User *u = &db->users[db->count];
+    strcpy(u->mobile, mobile);
+    u->acc_type = type;
+    u->biz_type = biz;
+    u->txn_count = 0;
+    u->accounts = NULL;
+    u->is_active = TRUE;
+
+    db->count++;
+    return SUCCESS;
+}
+
+/* Add bank account (linked list) */
+int add_bank_account(UserDB *db, char *mobile, char *acc_no, float bal) {
+    User *u = find_user(db, mobile);
+    if (!u) return FAIL;
+
+    BankNode *node = (BankNode *)malloc(sizeof(BankNode));
+    strcpy(node->account_no, acc_no);
+    node->balance = bal;
+    node->next = u->accounts;
+    u->accounts = node;
+
+    return SUCCESS;
+}
+
+/* Find user */
+User* find_user(UserDB *db, char *mobile) {
+    for (int i = 0; i < db->count; i++) {
+        if (strcmp(db->users[i].mobile, mobile) == 0)
+            return &db->users[i];
+    }
+    return NULL;
+}
+
+/* Send money */
+int send_money(UserDB *db, char *from, char *to, float amt) {
+    User *sender = find_user(db, from);
+    User *receiver = find_user(db, to);
+
+    if (!sender || !receiver) return FAIL;
+
+    /* Transaction limit */
+    if (sender->acc_type == BASIC && sender->txn_count >= MAX_TXN_BASIC)
+        return FAIL;
+
+    BankNode *s_acc = sender->accounts;
+    BankNode *r_acc = receiver->accounts;
+
+    if (!s_acc || !r_acc || s_acc->balance < amt)
+        return FAIL;
+
+    s_acc->balance -= amt;
+    r_acc->balance += amt;
+
+    /* Hotel cashback */
+    if (receiver->acc_type == BUSINESS && receiver->biz_type == HOTEL) {
+        s_acc->balance += amt * 0.03;
+    }
+
+    sender->txn_count++;
+    return SUCCESS;
+}
+
+/* Free linked list */
+void free_accounts(BankNode *head) {
+    while (head) {
+        BankNode *temp = head;
+        head = head->next;
+        free(temp);
+    }
+}
+
+/* Cleanup */
+void cleanup(UserDB *db) {
+    for (int i = 0; i < db->count; i++)
+        free_accounts(db->users[i].accounts);
+}
