@@ -1,0 +1,26 @@
+#include <assert.h>
+#include "upi.h"
+
+int main() {
+    UserDB db = init_db();
+    assert(db.is_init == TRUE);
+
+    /* Register users */
+    assert(register_user(&db, "9999999999", BASIC, NORMAL) == SUCCESS);
+    assert(register_user(&db, "8888888888", BUSINESS, HOTEL) == SUCCESS);
+
+    /* Add accounts */
+    assert(add_bank_account(&db, "9999999999", "ACC1", 1000) == SUCCESS);
+    assert(add_bank_account(&db, "8888888888", "ACC2", 500) == SUCCESS);
+
+    /* Transactions */
+    assert(send_money(&db, "9999999999", "8888888888", 100) == SUCCESS);
+    assert(send_money(&db, "9999999999", "8888888888", 100) == SUCCESS);
+    assert(send_money(&db, "9999999999", "8888888888", 100) == SUCCESS);
+
+    /* 4th transaction should fail */
+    assert(send_money(&db, "9999999999", "8888888888", 50) == FAIL);
+
+    cleanup(&db);
+    return 0;
+}
