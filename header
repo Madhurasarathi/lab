@@ -1,0 +1,62 @@
+#ifndef UPI_H
+#define UPI_H
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+/* -------- CONSTANTS -------- */
+#define MAX_USERS 50
+#define MAX_TXN_BASIC 3
+
+#define SUCCESS 1
+#define FAIL 0
+#define TRUE 1
+#define FALSE 0
+
+/* -------- ENUMERATIONS -------- */
+typedef enum {
+    BASIC,
+    BUSINESS
+} AccountType;
+
+typedef enum {
+    NORMAL,
+    HOTEL
+} BusinessType;
+
+/* -------- LINKED LIST FOR BANK ACCOUNTS -------- */
+typedef struct BankNode {
+    char account_no[20];
+    float balance;
+    struct BankNode *next;
+} BankNode;
+
+/* -------- USER STRUCTURE -------- */
+typedef struct {
+    char mobile[15];
+    AccountType acc_type;
+    BusinessType biz_type;        // valid only if BUSINESS
+    int txn_count;
+    BankNode *accounts;           // linked list of bank accounts
+    int is_active;
+} User;
+
+/* -------- ARRAY DATABASE -------- */
+typedef struct {
+    User users[MAX_USERS];
+    int count;
+    int is_init;
+} UserDB;
+
+/* -------- FUNCTION DECLARATIONS -------- */
+UserDB init_db();
+int register_user(UserDB *, char *, AccountType, BusinessType);
+int add_bank_account(UserDB *, char *, char *, float);
+User* find_user(UserDB *, char *);
+int send_money(UserDB *, char *, char *, float);
+
+void free_accounts(BankNode *);
+void cleanup(UserDB *);
+
+#endif
