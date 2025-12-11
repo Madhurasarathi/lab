@@ -1,0 +1,99 @@
+#include "boiler.h"
+
+/* Initialize boiler */
+Boiler *init_boiler(const char *name)
+{
+    Boiler *b = (Boiler *)malloc(sizeof(Boiler));
+    assert(b != NULL);
+
+    strcpy(b->boilerName, name);
+    b->count = 0;
+    b->sumTemp = 0;
+    b->logHead = NULL;
+
+    return b;
+}
+
+/* Record temperature (O(1)) */
+int record_temperature(Boiler *b, int time, int temp,
+                       int minSafe, int maxSafe)
+{
+    assert(b != NULL);
+    if (b->count >= MAX_READINGS)
+        return 0;
+
+    /* Array insert */
+    b->tempArray[b->count++] = temp;
+    b->sumTemp += temp;
+
+    if (b->count == 1) {
+        b->minTemp = b->maxTemp = temp;
+    } else {
+        if (temp < b->minTemp) b->minTemp = temp;
+        if (temp > b->maxTemp) b->maxTemp = temp;
+    }
+
+    /* Log entry */
+    Log *node = (Log *)malloc(sizeof(Log));
+    assert(node != NULL);
+
+    node->time = time;
+    node->temperature = temp;
+    node->alarm = (temp < minSafe || temp > maxSafe);
+    node->next = b->logHead;
+    b->logHead = node;
+
+    /* Alarm */
+    if (node->alarm) {
+        printf("🚨 ALARM [%s] Time=%d Temp=%d\n",
+               b->boilerName, time, temp);
+    }
+
+    return 1;
+}
+
+/* O(1) average */
+float average_temperature(Boiler *b)
+{
+    assert(b->count > 0);
+    return (float)b->sumTemp / b->count;
+}
+
+/* Display stats */
+void display_statistics(Boiler *b)
+{
+    printf("\nBoiler: %s", b->boilerName);
+    printf("\nMin Temp: %d", b->minTemp);
+    printf("\nMax Temp: %d", b->maxTemp);
+    printf("\nAverage Temp: %.2f\n", average_temperature(b));
+}
+
+/* View logs by time */
+void view_logs(Boiler *b, int start, int end)
+{
+    Log *t = b->logHead;
+    printf("\nLogs for %s (%d-%d minutes)\n",
+           b->boilerName, start, end);
+
+    while (t) {
+        if (t->time >= start && t->time <= end) {
+            printf("Time=%d Temp=%d %s\n",
+                   t->time,
+                   t->temperature,
+                   t->alarm ? "[UNSAFE]" : "");
+        }
+        t = t->next;
+    }
+}
+
+/* Free memory */
+void free_boiler(Boiler *b)
+{
+    Log *temp;
+    while (b->logHead) {
+        temp = b->logHead;
+        b->logHead = temp->next;
+        free(temp);
+    }
+    free(b);
+}
